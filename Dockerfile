@@ -1,20 +1,7 @@
-FROM golang:1.22.4 AS builder
-
+FROM golang:latest
 
 WORKDIR /app
-COPY go.mod ./
-RUN go mod download
 
+COPY ./main .
 
-COPY *.go ./
-RUN CGO_ENABLED=0 GOOS=linux go build -o /test-app
-
-
-FROM scratch
-COPY --from=builder /test-app /test-app
-
-
-EXPOSE 8081
-
-
-CMD ["/test-app"]
+CMD ["./main"]
