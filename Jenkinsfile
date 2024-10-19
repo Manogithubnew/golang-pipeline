@@ -1,61 +1,106 @@
 pipeline {
-   agent any
-
+    agent any
 
    tools {
-      go 'go-1.23.2'
-   }
-   environment {
-       GO111MODULE='on'
-       DOCKERHUB_CREDENTIALS = credentials('dockerhub')
-       DOCKER_IMAGE = 'ephraimaudu/test-app'
-       GITHUB_CREDENTIALS = 'github'
-       SONAR_TOKEN = credentials('SONAR_TOKEN')
-   }
+       go 'go-1.21.3'
+    }
 
+    environment {
+        SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
+    }
 
-   stages{
-       stage('Checkout'){
-           steps{
-               echo "checking out repo"
-               git url: 'https://github.com/Manogithubnew/golang-pipeline', branch: 'main',
-               credentialsId: "${GITHUB_CREDENTIALS}"
-           }
-       }
-       stage('Run SonarQube Analysis') {
+    stages {
+        stage('Unit Test') {
+            steps {
+                script {
+                    sh 'go mod init hello'
+                    sh 'go test'
+                }
+            }
+        }
+
+        stage('Coverage Report') {
+            steps {
+                script {
+                    sh 'go test -coverprofile=coverage.out'
+                    sh 'go tool cover -html=coverage.out -o coverage.html'
+                }
+                archiveArtifacts 'coverage.html'
+            }
+        }
+
+        stage('Run SonarQube Analysis') {
+            steps {
+                script {
+                        sh '/usr/local/sonar/bin/sonar-scanner -X -Dsonar.organization=wm-demo -Dsonar.projectKey=wm-demo_hello-webapp-golang -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io'
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    // Adjust these commands based on how you build and upload your Go application to Nexus
+                    sh 'go build -o main .'
+                    // sh 'curl -u username:password -X PUT --upload-file your-app https://nexus.example.com/repository/your-repo/your-app/1.0.0/your-app-1.0.0'
+                }
+                archiveArtifacts 'main'
+            }
+        }
+
+        stage('Build Docker Image') {
            steps {
                script {
-                   echo 'starting analysis'
-                   sh '/usr/local/sonar/bin/sonar-scanner -X -Dsonar.organization=eph-test-app -Dsonar.projectKey=eph-test-app-test-go-app -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io'
+                   sh 'docker build -t dab8106/hellogo .'
                }
            }
        }
-       stage('Run Docker Build'){
-           steps{
-               script{
-                    echo "starting docker build"
-                    sh "docker build build -t ${DOCKER_IMAGE}:${env.BUILD_ID} ."
-                    echo "docker built successfully"
-               }
-           }
-       }
-       stage('push to docker hub'){
-           steps{
-               echo "pushing to docker hub"
-               script{
-                   docker.withRegistry('https://index.docker.io/v1/', 'dockerhub'){
-                       docker.image("${DOCKER_IMAGE}:${env.BUILD_ID}").push()
+
+        stage('Push Docker Image') {
+           steps {
+               script {
+                   withCredentials([usernamePassword(credentialsId: 'DOCKER_REGISTRY_CREDENTIALS_ID', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                       sh """
+                           echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+                           docker push dab8106/hellogo
+                       """
                    }
                }
-               echo "done"
            }
        }
-   }
 
+       // stage('Terraform Apply') {
+       //      environment {
+       //          AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+       //          AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+       //      }
+       //      steps {
+       //          script {
+       //              sh '''
+       //                  export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+       //                  export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+       //                  cd ./terraform
+       //                  terraform init
+       //                  terraform apply -auto-approve
+       //              '''
+       //          }
+       //      }
+       //  }
 
-   post {
-       always{
-           cleanWs()
-       }
-   }
+        stage('Run Ansible Playbook') {
+            steps {
+                script {
+                    sh '''
+                        ansible-playbook ansible/deploy-container.yaml
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
 }
