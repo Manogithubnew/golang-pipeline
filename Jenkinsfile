@@ -1,50 +1,20 @@
 pipeline {
     agent any
+      
     tools {
-        go 'go1.23'
+       go "Go 1.23.2"
     }
-    environment {
-        GO114MODULE = 'on'
-        CGO_ENABLED = 0 
-        GOPATH = "${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_ID}"
-    }
-    stages {        
-        stage('Pre Test') {
+    
+    stages {
+        stage('Build Bin') {
             steps {
-                echo 'Installing dependencies'
-                sh 'go version'
-                sh 'go get -u golang.org/x/lint/golint'
+                sh 'build/build-bin.sh'
             }
         }
-        
-        stage('Build') {
+        stage('Build War') {
             steps {
-                echo 'Compiling and building'
-                sh 'go build'
+                sh 'build/run-tests.sh'
             }
         }
-
-        stage('Test') {
-            steps {
-                withEnv(["PATH+GO=${GOPATH}/bin"]){
-                    echo 'Running vetting'
-                    sh 'go vet .'
-                    echo 'Running linting'
-                    sh 'golint .'
-                    echo 'Running test'
-                    sh 'cd test && go test -v'
-                }
-            }
-        }
-        
     }
-    post {
-        always {
-            emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}",
-                recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
-                to: "${params.RECIPIENTS}",
-                subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
-            
-        }
-    }  
 }
