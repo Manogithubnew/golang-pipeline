@@ -9,7 +9,7 @@ pipeline {
        GO111MODULE='on'
        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
        DOCKER_IMAGE = 'ephraimaudu/test-app'
-       GITHUB_CREDENTIALS = 'git-secret'
+       GITHUB_CREDENTIALS = 'github'
        SONAR_TOKEN = credentials('SONAR_TOKEN')
    }
 
@@ -18,7 +18,7 @@ pipeline {
        stage('Checkout'){
            steps{
                echo "checking out repo"
-               git url: 'https://github.com/audu97/test-project', branch: 'master',
+               git url: 'https://github.com/Manogithubnew/golang-pipeline', branch: 'main',
                credentialsId: "${GITHUB_CREDENTIALS}"
            }
        }
