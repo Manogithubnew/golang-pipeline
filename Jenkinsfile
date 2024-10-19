@@ -3,9 +3,10 @@ pipeline {
 
 
    tools {
-      go 'golang'
+      go 'go-1.23.2'
    }
    environment {
+       GO111MODULE='on'
        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
        DOCKER_IMAGE = 'ephraimaudu/test-app'
        GITHUB_CREDENTIALS = 'git-secret'
