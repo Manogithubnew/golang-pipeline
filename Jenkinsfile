@@ -2,11 +2,11 @@ pipeline {
     agent any
 
    tools {
-       go 'go-1.21.3'
+       go 'go-1.23.2'
     }
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
+        SONAR_TOKEN = credentials('sonartoken') // Reference Jenkins credential ID
     }
 
     stages {
