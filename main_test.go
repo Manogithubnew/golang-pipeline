@@ -1,10 +1,31 @@
+// main_test.go
 package main
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
 
-func TestMain(t *testing.T) {
-    expected := "Hello, CI/CD with Jenkins!"
-    if expected != "Hello, CI/CD with Jenkins!" {
-        t.Fatalf("Expected %s, but got %s", expected, "Hello, CI/CD with Jenkins!")
-    }
+func TestHandler(t *testing.T) {
+	req, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handler)
+
+	handler.ServeHTTP(rr, req)
+
+	expected := "Hello, World!"
+	if rr.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			rr.Body.String(), expected)
+	}
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
 }
