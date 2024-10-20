@@ -1,20 +1,12 @@
 pipeline {
     agent any
-      
     tools {
-       go "Go 1.23.2"
+        go 'go-1.11'
     }
-    
+    environment {
+        GO111MODULE = 'on'
+    }
     stages {
-        stage('Build Bin') {
-            steps {
-                sh 'build/build-bin.sh'
-            }
-        }
-        stage('Build War') {
-            steps {
-                sh 'build/run-tests.sh'
-            }
-        }
+        ...
     }
 }
